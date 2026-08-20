@@ -284,7 +284,7 @@ bool GpuRamGui::CreateTryIcon()
 	bool result = m_Tray.CreateIcon(m_hWnd, m_Icon, m_IconMounted, SWM_TRAYINTERACTION);
 	if (result)
 	{
-		m_Tray.SetTooltip(wszAppName, m_AutoMount);
+		m_Tray.SetTooltip(wszAppName, IsAnyMounted());
 		return true;
 	}
 	SetTimer(m_hWnd, IDT_TIMER1, 1000, (TIMERPROC)NULL);
@@ -862,6 +862,12 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 			break;
 		default:
 		{
+			// Handle TaskbarCreated: Explorer restarted, tray icon was lost
+			if (_this && message == GpuRamTrayIcon::GetTaskbarCreatedMessage())
+			{
+				_this->m_Tray.Recreate();
+				return 0;
+			}
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}

@@ -4,6 +4,9 @@
 // Using GUID will causes an issue, see all the details here: https://github.com/electron/electron/pull/2882
 static const GUID TRAY_GUID = { 0xf5b95301, 0xd87e, 0x45fd, {0x96, 0xfb, 0xad, 0x4f, 0xfd, 0x08, 0x1d, 0xeb} };
 
+// Lazy-initialized message ID for TaskbarCreated (Explorer restart notification)
+static UINT WM_TASKBARCREATED = 0;
+
 GpuRamTrayIcon::GpuRamTrayIcon()
 {
 	memset(&m_Data, 0, sizeof(m_Data));
@@ -39,6 +42,7 @@ bool GpuRamTrayIcon::Destroy()
 
 bool GpuRamTrayIcon::SetTooltip(const std::wstring& tooltip, boolean isMounted)
 {
+	m_isMounted = isMounted;
 	if (isMounted)
 		m_Data.hIcon = m_hIconMounted;
 	else
@@ -46,4 +50,22 @@ bool GpuRamTrayIcon::SetTooltip(const std::wstring& tooltip, boolean isMounted)
 	m_Tooltip = tooltip;
 	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip.c_str(), min(ARRAYSIZE(m_Data.szTip), m_Tooltip.length()));
 	return Shell_NotifyIcon(NIM_MODIFY, &m_Data) > 0;
+}
+
+UINT GpuRamTrayIcon::GetTaskbarCreatedMessage()
+{
+	if (WM_TASKBARCREATED == 0)
+	{
+		WM_TASKBARCREATED = RegisterWindowMessage(L"TaskbarCreated");
+	}
+	return WM_TASKBARCREATED;
+}
+
+bool GpuRamTrayIcon::Recreate()
+{
+	Destroy();
+	m_Data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+	m_Data.uID = 1;
+	m_Data.hIcon = m_isMounted ? m_hIconMounted : m_hIcon;
+	return Shell_NotifyIcon(NIM_ADD, &m_Data) > 0;
 }
